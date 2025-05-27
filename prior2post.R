@@ -1,3 +1,6 @@
+#setwd("../../..")  # sets working directory to Moore_2022/
+
+
 # Convert survey response to fractional success/failure
 survey_to_sf <- function(response) {
     switch(response,
