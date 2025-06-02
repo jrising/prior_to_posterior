@@ -1,0 +1,3 @@
+[submodule "moore_2022"]
+	path = moore_2022
+	url = https://github.com/takyurp09/Moore_2022.git
