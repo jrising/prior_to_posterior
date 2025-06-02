@@ -9,7 +9,8 @@ source("src/model.R")
 source("src/prior_to_post/prior2post.R")
 
 # Read prior draws
-raw_priors <- fread("../results/MC Runs/parameter_tune.csv")[, 1:9]  # drop sampleweight
+raw_priors <- fread("/Users/taky/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/Other computers/My Laptop/UDel/Taky_research/CCAC_taky/Moore_2022/results/MC Runs/parameter_tune.csv")[, 1:9]  # drop sampleweight
+
 names(raw_priors) <- make.names(names(raw_priors))  # Clean column names
 
 param_names <- c(
@@ -20,35 +21,24 @@ param_names <- c(
 
 priors9 <- raw_priors[, param_names, with = FALSE]
 priors9 <- as.data.frame(lapply(priors9, as.numeric)) %>% na.omit()
-ndraws <- nrow(priors9)
+ndraws  <- nrow(priors9)
 
 # Generate survey-informed posterior draws
 surveyresponse_list <- list(
-    Homophily            = sample(c("Not a barrier","Small","Moderate","Significant"), 30, TRUE),
-    Strong.Force         = sample(c("Not a barrier","Small","Moderate","Significant"), 30, TRUE),
-    Weak.Force           = sample(c("Not a barrier","Small","Moderate","Significant"), 30, TRUE),
-    Evidence             = sample(c("Not a barrier","Small","Moderate","Significant"), 30, TRUE),
-    Pol.Opinion          = sample(c("Not a barrier","Small","Moderate","Significant"), 30, TRUE),
-    Status.Quo.Bias      = sample(c("Not a barrier","Small","Moderate","Significant"), 30, TRUE),
-    Pol.Int.Feedback     = sample(c("Not a barrier","Small","Moderate","Significant"), 30, TRUE),
-    Biased.Assimilation  = sample(c("Not a barrier","Small","Moderate","Significant"), 30, TRUE),
-    Shifting.Baselines   = sample(c("Not a barrier","Small","Moderate","Significant"), 30, TRUE)
+    Homophily           = sample(c("Not a barrier","Small","Moderate","Significant"), 30, TRUE),
+    Strong.Force        = sample(c("Not a barrier","Small","Moderate","Significant"), 30, TRUE),
+    Weak.Force          = sample(c("Not a barrier","Small","Moderate","Significant"), 30, TRUE),
+    Evidence            = sample(c("Not a barrier","Small","Moderate","Significant"), 30, TRUE),
+    Pol.Opinion         = sample(c("Not a barrier","Small","Moderate","Significant"), 30, TRUE),
+    Status.Quo.Bias     = sample(c("Not a barrier","Small","Moderate","Significant"), 30, TRUE),
+    Pol.Int.Feedback    = sample(c("Not a barrier","Small","Moderate","Significant"), 30, TRUE),
+    Biased.Assimilation = sample(c("Not a barrier","Small","Moderate","Significant"), 30, TRUE),
+    Shifting.Baselines  = sample(c("Not a barrier","Small","Moderate","Significant"), 30, TRUE)
 )
+names(surveyresponse_list) <- make.names(names(surveyresponse_list))
 
-names(surveyresponse_list) <- make.names(names(surveyresponse_list))  # Ensure matching
-
-bounded_params <- c(
-    "Homophily", "Strong.Force", "Weak.Force",
-    "Evidence", "Pol.Opinion", "Biased.Assimilation"
-)
-
-priors_bnd   <- priors9[, bounded_params, drop = FALSE]
-priors_fixed <- priors9[, setdiff(names(priors9), bounded_params), drop = FALSE]
-
-post_bnd <- as.data.frame(prior2post(as.matrix(priors_bnd), surveyresponse_list[bounded_params]))
-post_bnd[] <- lapply(post_bnd, function(x) pmin(pmax(x, 0), 1))  # Clamp within [0, 1]
-
-post9 <- cbind(post_bnd, priors_fixed)
+# Apply prior2post to all parameters
+post9 <- as.data.frame(prior2post(as.matrix(priors9), surveyresponse_list))
 post9$Shifting.Baselines <- as.integer(post9$Shifting.Baselines > 0.5)
 stopifnot(dim(post9) == dim(priors9))
 
@@ -84,7 +74,7 @@ for (i in seq_len(ndraws)) {
     me <- post_m$totalemissions
     
     for (y in seq_len(nyears - 1)) {
-        eY <- pe[y]
+        eY  <- pe[y]
         idx <- which(me[(y + 1):nyears] <= eY + 1e-10)[1]
         if (!is.na(idx)) delay_matrix[i, y] <- idx
     }

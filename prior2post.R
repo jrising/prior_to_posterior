@@ -1,4 +1,4 @@
-#setwd("../../..")  # sets working directory to Moore_2022/
+setwd("../../..")  
 
 
 # Convert survey response to fractional success/failure
@@ -11,20 +11,23 @@ survey_to_sf <- function(response) {
            stop("Unknown response: ", response))
 }
 
-# Update a single prior value with survey evidence
-
-posterior <- function(prior_val, responses) {
+# Update a vector of prior values using quantile mapping and Beta posterior
+posterior_bounded <- function(prior_vals, responses) {
     sf <- vapply(responses, survey_to_sf, numeric(2))
     a <- 1 + sum(sf[1, ])
     b <- 1 + sum(sf[2, ])
     
-    # Use quantile transformation: q = prior_val since prior is uniform
-    q <- prior_val
+    # Convert prior draws to u-space
+    prior_q <- ecdf(prior_vals)(prior_vals)
     
-    # Get posterior draw as q-th quantile of the Beta(a, b)
-    qbeta(q, a, b)
+    # Sample new quantiles from Beta posterior
+    post_q <- qbeta(prior_q, a, b)
+    
+    # Remap back to original scale using quantile transform
+    sorted_prior <- sort(prior_vals)
+    result <- quantile(sorted_prior, post_q, type = 1)
+    return(result)
 }
-
 
 # Apply update across all parameters and draws
 prior2post <- function(priordraws, surveyresponse_list) {
@@ -32,22 +35,16 @@ prior2post <- function(priordraws, surveyresponse_list) {
     postdraws <- priordraws
     
     for (j in seq_len(ncol(priordraws))) {
-        resp <- surveyresponse_list[[j]]
+        responses <- surveyresponse_list[[j]]
         vals <- priordraws[, j]
         
-        # if you supplied some survey answers *and* the column really is in [0,1], do the Beta-update
-        if (length(resp) > 0 && all(vals >= 0 & vals <= 1, na.rm = TRUE)) {
-            for (i in seq_len(nrow(priordraws))) {
-                postdraws[i, j] <- posterior(vals[i], resp)
-            }
-        } else {
-            # otherwise leave it as-is
-            warning("Skipping Beta-update for “", colnames(priordraws)[j],
-                    "”: values not in [0,1].")
+        if (length(responses) == 0) {
+            warning("No survey responses for: ", colnames(priordraws)[j])
+            next
         }
+        
+        postdraws[, j] <- posterior_bounded(vals, responses)
     }
     
-    postdraws
+    return(postdraws)
 }
-
-

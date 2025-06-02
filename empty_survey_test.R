@@ -1,22 +1,20 @@
-# 0.libraries and functions
+# 0. Libraries and functions
 library(data.table)
 library(ggplot2)
 library(reshape2)
 library(dplyr)
 
-
-setwd("../..")  
+setwd("../..")
 
 source("src/model.R")
 source("src/prior_to_post/prior2post.R")
 
-
 # 1. Read & prep your prior draws
-priordraws <- fread("../results/MC Runs/parameter_tune.csv")[, 1:9]  # drop sampleweight
+priordraws <- fread("/Users/taky/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/Other computers/My Laptop/UDel/Taky_research/CCAC_taky/Moore_2022/results/MC Runs/parameter_tune.csv")[, 1:9]  # drop sampleweight
 
 priordraws <- as.data.frame(lapply(priordraws, as.numeric)) %>% na.omit()
 
-# --- STEP 1: EMPTY‐SURVEY TEST (Beta(1,1)) ---
+# --- STEP 1: EMPTY-SURVEY TEST (Beta(1,1)) ---
 param_names <- c(
     "Homophily", "Strong.Force", "Weak.Force",
     "Evidence", "Pol.Opinion", "Status.Quo.Bias",
@@ -79,11 +77,10 @@ for (i in seq_len(ndraws)) {
     me <- post_model$totalemissions
     
     for (y in seq_len(nyears - 1)) {
-        eY <- pe[y]
+        eY  <- pe[y]
         idx <- which(me[(y + 1):nyears] <= eY + 1e-10)[1]
         if (!is.na(idx)) delay_matrix[i, y] <- idx
     }
-    
 }
 
 # 5. Quick sanity checks
