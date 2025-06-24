@@ -4,13 +4,15 @@ library(ggplot2)
 library(reshape2)
 library(dplyr)
 
-setwd("../..")
+setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/Other computers/My Laptop/UDel/Taky_research/CCAC_taky/prior_to_post")
 
-source("src/model.R")
-source("src/prior_to_post/prior2post.R")
+source("prior2post.R")
+source("../../moore_2022/code/src/model.R")
+
+
 
 # 1. Read & prep your prior draws
-priordraws <- fread("/Users/taky/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/Other computers/My Laptop/UDel/Taky_research/CCAC_taky/Moore_2022/results/MC Runs/parameter_tune.csv")[, 1:9]  # drop sampleweight
+priordraws <- fread("/Users/taky/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/Other computers/My Laptop/UDel/Taky_research/CCAC_taky/prior_to_post/moore_2022/results/MC Runs/parameter_tune.csv")[, 1:9]  # drop sampleweight
 
 priordraws <- as.data.frame(lapply(priordraws, as.numeric)) %>% na.omit()
 
@@ -28,7 +30,7 @@ postdraws <- as.data.frame(
 )
 
 # Binary-ify Shifting.Baselines
-postdraws$Shifting.Baselines <- as.integer(postdraws$Shifting.Baselines > 0.5)
+#postdraws$Shifting.Baselines <- as.integer(postdraws$Shifting.Baselines > 0.5)
 
 # Align sizes just in case
 ndraws     <- min(nrow(priordraws), nrow(postdraws))
@@ -43,7 +45,7 @@ cat("Empty-survey check (TRUE means no change):\n",
 years        <- 2020:2100
 nyears       <- length(years)
 delay_matrix <- matrix(
-    0L,
+    NA,
     nrow = ndraws, ncol = nyears,
     dimnames = list(NULL, as.character(years))
 )
@@ -68,6 +70,7 @@ run_model_from_draw <- function(draw) {
 }
 
 # 4. Fill in delay_matrix
+
 for (i in seq_len(ndraws)) {
     prior_model <- tryCatch(run_model_from_draw(priordraws[i, ]), error = function(e) NULL)
     post_model  <- tryCatch(run_model_from_draw(postdraws[i,  ]), error = function(e) NULL)
@@ -76,15 +79,25 @@ for (i in seq_len(ndraws)) {
     pe <- prior_model$totalemissions
     me <- post_model$totalemissions
     
-    for (y in seq_len(nyears - 1)) {
+    nonzeros.pe = pe[pe != 0]
+    lastchange.pe = tail(which(diff(sign(diff(nonzeros.pe))) != 0), 1)
+    nonzeros.me = me[me != 0]
+    lastchange.me = tail(which(diff(sign(diff(nonzeros.me))) != 0), 1)
+    
+    if (length(lastchange.pe) == 0 || length(lastchange.me) == 0)
+        next
+    
+    for (y in max(lastchange.pe, lastchange.me):max(length(nonzeros.pe), length(nonzeros.me))) {
         eY  <- pe[y]
-        idx <- which(me[(y + 1):nyears] <= eY + 1e-10)[1]
-        if (!is.na(idx)) delay_matrix[i, y] <- idx
+        idx <- which(me <= eY + 1e-10)[1] - y
+        delay_matrix[i, y] <- idx
     }
 }
 
 # 5. Quick sanity checks
-cat("Total zero (never catch up) entries: ", sum(delay_matrix == 0L), "\n")
+cat("Total zero (never catch up) entries: ", sum(delay_matrix == 0L, na.rm=T), "\n")
 cat("Mean delay (yrs, ignoring zeros):  ",
-    mean(delay_matrix[delay_matrix > 0], na.rm = TRUE), "\n")
+    mean(delay_matrix, na.rm = TRUE), "\n")
+cat("Mean delay (yrs, ignoring zeros):  ",
+    mean(delay_matrix[, colnames(delay_matrix) == "2050"], na.rm = TRUE), "\n")
 print(table(delay_matrix, useNA = "always"))
