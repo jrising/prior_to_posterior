@@ -108,46 +108,6 @@ run_model_from_draw <- function(draw) {
 }
 
 
-# # -------------------------------
-# # STEP 3: One-at-a-time Parameter Delay Test (posterior shift)
-# # -------------------------------
-# 
-# ndraws <- 100  # adjust as needed
-# param_names <- colnames(priordraws)
-# delay_summary <- data.frame(Parameter = param_names, MeanDelay = NA_real_)
-# 
-# get_delay <- function(pe, me) {
-#     for (y in seq_along(pe)) {
-#         if (me[y] <= pe[y]) return(y)
-#     }
-#     return(NA)
-# }
-# 
-# for (i in seq_along(param_names)) {
-#     param <- param_names[i]
-#     cat("Running param:", param, "\n")
-#     
-#     # Fix all parameters to their prior medians
-#     fixed_vals <- apply(priordraws, 2, median)
-#     delays <- numeric(ndraws)
-#     
-#     for (j in seq_len(ndraws)) {
-#         draw <- fixed_vals  # start from fixed median prior
-#         draw[param] <- postdraws[[param]][j]  # update just one parameter to posterior
-#         
-#         m_post  <- tryCatch(run_model_from_draw(as.list(draw)), error = function(e) NULL)
-#         m_prior <- tryCatch(run_model_from_draw(as.list(fixed_vals)), error = function(e) NULL)
-#         
-#         if (is.null(m_post) || is.null(m_prior)) next
-#         
-#         pe <- m_prior$totalemissions
-#         me <- m_post$totalemissions
-#         delays[j] <- get_delay(pe, me)
-#     }
-#     
-#     delay_summary$MeanDelay[i] <- mean(delays, na.rm = TRUE)
-#     cat("Finished:", param, "| Mean Delay =", delay_summary$MeanDelay[i], "\n")
-# }
 
 
 
@@ -189,6 +149,55 @@ for (p in param_names) {
 
 
 
+
+
+
+
+
+
+
+
+
+# # -----------------------------------------------------------------------------------
+# # PREVIOUS CODE: One-at-a-time Parameter Delay Test (posterior shift)
+# # -----------------------------------------------------------------------------------
+# 
+# ndraws <- 100  # adjust as needed
+# param_names <- colnames(priordraws)
+# delay_summary <- data.frame(Parameter = param_names, MeanDelay = NA_real_)
+# 
+# get_delay <- function(pe, me) {
+#     for (y in seq_along(pe)) {
+#         if (me[y] <= pe[y]) return(y)
+#     }
+#     return(NA)
+# }
+# 
+# for (i in seq_along(param_names)) {
+#     param <- param_names[i]
+#     cat("Running param:", param, "\n")
+#     
+#     # Fix all parameters to their prior medians
+#     fixed_vals <- apply(priordraws, 2, median)
+#     delays <- numeric(ndraws)
+#     
+#     for (j in seq_len(ndraws)) {
+#         draw <- fixed_vals  # start from fixed median prior
+#         draw[param] <- postdraws[[param]][j]  # update just one parameter to posterior
+#         
+#         m_post  <- tryCatch(run_model_from_draw(as.list(draw)), error = function(e) NULL)
+#         m_prior <- tryCatch(run_model_from_draw(as.list(fixed_vals)), error = function(e) NULL)
+#         
+#         if (is.null(m_post) || is.null(m_prior)) next
+#         
+#         pe <- m_prior$totalemissions
+#         me <- m_post$totalemissions
+#         delays[j] <- get_delay(pe, me)
+#     }
+#     
+#     delay_summary$MeanDelay[i] <- mean(delays, na.rm = TRUE)
+#     cat("Finished:", param, "| Mean Delay =", delay_summary$MeanDelay[i], "\n")
+# }
 
 
 
